@@ -1,77 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Redirecting...</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    padding-top: 150px;
-    background: #fff;
-    color: #444;
-  }
-  .spinner {
-    margin: 40px auto;
-    width: 40px;
-    height: 40px;
-    border: 5px solid #ccc;
-    border-top-color: #1a73e8;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  .message {
-    font-size: 18px;
-  }
-  .adspot {
-    margin-top: 50px;
-    width: 300px;
-    height: 250px;
-    background: #eee;
-    border: 1px solid #ccc;
-    display: inline-block;
-    line-height: 250px;
-    color: #999;
-    font-weight: bold;
-  }
-  .default-message {
-    font-size: 72px;
-    font-weight: bold;
-    color: red;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="robots" content="index, follow" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Redirecting…</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 120px;
+      background: #fff;
+      color: #444;
+    }
+    .spinner {
+      margin: 30px auto;
+      width: 40px;
+      height: 40px;
+      border: 5px solid #ccc;
+      border-top-color: #1a73e8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .message {
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+    .adspot {
+      margin-top: 40px;
+      width: 300px;
+      height: 250px;
+      background: #eee;
+      border: 1px solid #ccc;
+      display: inline-block;
+      line-height: 250px;
+      color: #999;
+      font-weight: bold;
+    }
+    .default-message {
+      font-size: 72px;
+      font-weight: bold;
+      color: red;
+    }
+    .fallback {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    .fallback a {
+      color: #1a73e8;
+      text-decoration: none;
+    }
+  </style>
 </head>
 <body>
 
 <div id="content"></div>
 
 <script>
-// Function to get full URL from path or query param
+// Utility: get redirect URL from ?url= or path
 function getRedirectUrl() {
-  // Try from path after '/'
-  let path = window.location.pathname.slice(1);
+  const path = window.location.pathname.slice(1);
   if (path) {
     try {
-      // decode URL-encoded path
-      let decoded = decodeURIComponent(path);
-      if (decoded.startsWith('http://') || decoded.startsWith('https://')) {
-        return decoded;
-      }
-    } catch {
-      // ignore decode errors
-    }
+      const decoded = decodeURIComponent(path);
+      if (/^https?:\/\//i.test(decoded)) return decoded;
+    } catch {}
   }
-  // Try from ?url= param
   const params = new URLSearchParams(window.location.search);
-  const urlParam = params.get('url');
-  if (urlParam && (urlParam.startsWith('http://') || urlParam.startsWith('https://'))) {
-    return urlParam;
-  }
-  // No valid URL found
+  const u = params.get('url');
+  if (u && /^https?:\/\//i.test(u)) return u;
   return null;
 }
 
@@ -79,24 +79,34 @@ const redirectUrl = getRedirectUrl();
 const content = document.getElementById('content');
 
 if (!redirectUrl) {
-  // No valid URL — show default
+  // No target → show default
   content.innerHTML = `<div class="default-message">BITCH</div>`;
 } else {
-  // Show wait + spinner + ad
+  // For crawlers that execute JS, add a meta-refresh fallback
+  const meta = document.createElement('meta');
+  meta.httpEquiv = "refresh";
+  meta.content = `5;url=${redirectUrl}`;
+  document.head.appendChild(meta);
+
+  // Show your wait UI
   content.innerHTML = `
-    <div class="message">Please wait 5 seconds while we prepare your link...</div>
+    <div class="message">Please wait 5 seconds while we prepare your link…</div>
     <div class="spinner"></div>
     <div class="adspot">[Your Ad Here]</div>
+    <div class="fallback">
+      If you’re not redirected in 5 seconds, <a href="${redirectUrl}">click here</a>.
+    </div>
   `;
 
+  // JS countdown + redirect
   let countdown = 5;
+  const msg = content.querySelector('.message');
   const interval = setInterval(() => {
     countdown--;
     if (countdown > 0) {
-      content.querySelector('.message').textContent = `Please wait ${countdown} seconds while we prepare your link...`;
+      msg.textContent = `Please wait ${countdown} seconds while we prepare your link…`;
     } else {
       clearInterval(interval);
-      // Redirect now
       window.location.href = redirectUrl;
     }
   }, 1000);
